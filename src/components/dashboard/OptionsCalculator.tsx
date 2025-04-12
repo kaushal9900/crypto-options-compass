@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -10,11 +10,20 @@ import { cn } from "@/lib/utils";
 
 interface OptionsCalculatorProps {
   className?: string;
+  initialPrice?: number;
 }
 
-const OptionsCalculator: React.FC<OptionsCalculatorProps> = ({ className }) => {
+const OptionsCalculator: React.FC<OptionsCalculatorProps> = ({ className, initialPrice }) => {
   const [optionType, setOptionType] = useState<"call" | "put">("call");
   const [optionStyle, setOptionStyle] = useState<"american" | "european">("american");
+  const [spotPrice, setSpotPrice] = useState<string>("55000");
+  
+  // Set spot price from prop if available
+  useEffect(() => {
+    if (initialPrice) {
+      setSpotPrice(initialPrice.toString());
+    }
+  }, [initialPrice]);
   
   // In a real app, these would be calculated based on inputs
   const results = {
@@ -83,7 +92,11 @@ const OptionsCalculator: React.FC<OptionsCalculatorProps> = ({ className }) => {
 
           <div className="space-y-2">
             <Label htmlFor="spotPrice">Current Price</Label>
-            <Input id="spotPrice" defaultValue="55000" />
+            <Input 
+              id="spotPrice" 
+              value={spotPrice} 
+              onChange={(e) => setSpotPrice(e.target.value)} 
+            />
           </div>
 
           <div className="space-y-2">

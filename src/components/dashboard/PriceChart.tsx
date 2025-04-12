@@ -3,6 +3,7 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Mock data
 const data = [
@@ -23,6 +24,8 @@ const data = [
 interface PriceChartProps {
   symbol?: string;
   className?: string;
+  btcPrice?: number;
+  isLoading?: boolean;
 }
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -40,15 +43,26 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-const PriceChart: React.FC<PriceChartProps> = ({ symbol = "BTC/USD", className }) => {
+const PriceChart: React.FC<PriceChartProps> = ({ 
+  symbol = "BTC/USD", 
+  className, 
+  btcPrice = 54800, 
+  isLoading = false
+}) => {
   return (
     <Card className={className}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div className="space-y-1">
           <CardTitle className="text-base font-medium">{symbol} Price</CardTitle>
           <div className="flex items-baseline space-x-2">
-            <span className="text-2xl font-bold">$54,800</span>
-            <span className="text-profit text-sm font-medium">+2.4%</span>
+            {isLoading ? (
+              <Skeleton className="h-8 w-24" />
+            ) : (
+              <>
+                <span className="text-2xl font-bold">${btcPrice.toLocaleString()}</span>
+                <span className="text-profit text-sm font-medium">+2.4%</span>
+              </>
+            )}
           </div>
         </div>
         <Tabs defaultValue="1D" className="w-auto">
@@ -62,44 +76,48 @@ const PriceChart: React.FC<PriceChartProps> = ({ symbol = "BTC/USD", className }
         </Tabs>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="h-72 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
-              data={data}
-              margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-            >
-              <defs>
-                <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="rgb(139, 92, 246)" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="rgb(139, 92, 246)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis 
-                dataKey="date" 
-                tickLine={false}
-                axisLine={false}
-                tick={{ fill: '#8E9196', fontSize: 12 }}
-              />
-              <YAxis 
-                orientation="right"
-                tickFormatter={(value) => `$${value.toLocaleString()}`} 
-                tickLine={false}
-                axisLine={false}
-                tick={{ fill: '#8E9196', fontSize: 12 }}
-              />
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2D3748" />
-              <Tooltip content={<CustomTooltip />} />
-              <Area 
-                type="monotone" 
-                dataKey="price" 
-                stroke="#8B5CF6" 
-                fillOpacity={1}
-                fill="url(#colorPrice)" 
-                strokeWidth={2}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+        {isLoading ? (
+          <Skeleton className="h-72 w-full" />
+        ) : (
+          <div className="h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={data}
+                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="rgb(139, 92, 246)" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="rgb(139, 92, 246)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis 
+                  dataKey="date" 
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: '#8E9196', fontSize: 12 }}
+                />
+                <YAxis 
+                  orientation="right"
+                  tickFormatter={(value) => `$${value.toLocaleString()}`} 
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: '#8E9196', fontSize: 12 }}
+                />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2D3748" />
+                <Tooltip content={<CustomTooltip />} />
+                <Area 
+                  type="monotone" 
+                  dataKey="price" 
+                  stroke="#8B5CF6" 
+                  fillOpacity={1}
+                  fill="url(#colorPrice)" 
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
