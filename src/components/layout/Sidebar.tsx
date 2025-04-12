@@ -4,7 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
   BarChart3,
-  Candlestick,
+  LineChart,
   LayoutGrid,
   Wallet,
   Calculator,
@@ -38,7 +38,7 @@ const navItems: NavItem[] = [
   {
     title: "Charts",
     href: "/charts",
-    icon: Candlestick,
+    icon: LineChart,
   },
   {
     title: "Portfolio",
