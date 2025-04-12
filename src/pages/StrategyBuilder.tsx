@@ -266,6 +266,12 @@ const StrategyBuilder: React.FC = () => {
                   <TabsTrigger value="graph">Payoff Graph</TabsTrigger>
                   <TabsTrigger value="table">Payoff Table</TabsTrigger>
                 </TabsList>
+              
+                {/* The TabsContent components need to be inside the Tabs component */}
+                <div className="hidden">
+                  {/* This is just a placeholder to make React happy */}
+                  {/* The actual content will be rendered outside based on activeTab state */}
+                </div>
               </Tabs>
               
               {payoff && (
@@ -284,155 +290,161 @@ const StrategyBuilder: React.FC = () => {
           </CardHeader>
           
           <CardContent className="pt-6">
-            <TabsContent value="graph" className="mt-0">
-              {!payoff ? (
-                <div className="h-80 flex items-center justify-center">
-                  <p className="text-muted-foreground">Build a strategy to see the payoff chart</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center space-x-2">
-                      {strategy && (
-                        <div>
-                          <span className="text-sm font-medium">{strategy.definition_name}</span>
-                          <span className="text-xs text-muted-foreground ml-2">
-                            ({strategy.underlying_asset} @ ${strategy.underlying_price_at_construction.toLocaleString()})
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <Button variant="outline" size="sm">
-                      <ZoomOut className="h-4 w-4 mr-1" />
-                      Zoom Out
-                    </Button>
+            {/* Render content based on activeTab state */}
+            {activeTab === "graph" && (
+              <div className="mt-0">
+                {!payoff ? (
+                  <div className="h-80 flex items-center justify-center">
+                    <p className="text-muted-foreground">Build a strategy to see the payoff chart</p>
                   </div>
-                
-                  <div className="h-80 bg-card/50 rounded-md border p-4">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart
-                        data={payoff.payoff}
-                        margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                      >
-                        <defs>
-                          <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="rgb(34, 197, 94)" stopOpacity={0.2} />
-                            <stop offset="95%" stopColor="rgb(34, 197, 94)" stopOpacity={0} />
-                          </linearGradient>
-                          <linearGradient id="colorLoss" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="rgb(239, 68, 68)" stopOpacity={0.2} />
-                            <stop offset="95%" stopColor="rgb(239, 68, 68)" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <XAxis 
-                          dataKey="underlying_price" 
-                          tickFormatter={(value) => `$${value.toLocaleString()}`}
-                          tickLine={false}
-                          axisLine={false}
-                          tick={{ fill: '#8E9196', fontSize: 12 }}
-                        />
-                        <YAxis 
-                          tickFormatter={(value) => `$${value.toLocaleString()}`} 
-                          tickLine={false}
-                          axisLine={false}
-                          tick={{ fill: '#8E9196', fontSize: 12 }}
-                        />
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2D3748" />
-                        <Tooltip 
-                          formatter={(value: any) => [`$${parseFloat(value).toFixed(2)}`, 'Profit/Loss']}
-                          labelFormatter={(value) => `Price: $${parseFloat(value).toFixed(2)}`}
-                        />
-                        <ReferenceLine y={0} stroke="#8E9196" strokeWidth={1} />
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center space-x-2">
                         {strategy && (
-                          <ReferenceLine 
-                            x={strategy.underlying_price_at_construction} 
-                            stroke="#8E9196" 
-                            strokeDasharray="3 3" 
-                          />
+                          <div>
+                            <span className="text-sm font-medium">{strategy.definition_name}</span>
+                            <span className="text-xs text-muted-foreground ml-2">
+                              ({strategy.underlying_asset} @ ${strategy.underlying_price_at_construction.toLocaleString()})
+                            </span>
+                          </div>
                         )}
-                        <Area 
-                          type="monotone" 
-                          dataKey="profit_loss" 
-                          stroke="#8B5CF6" 
-                          strokeWidth={2}
-                          fill="url(#colorProfit)"
-                          activeDot={{ r: 6 }}
-                          fillOpacity={1}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
+                      </div>
+                      <Button variant="outline" size="sm">
+                        <ZoomOut className="h-4 w-4 mr-1" />
+                        Zoom Out
+                      </Button>
+                    </div>
+                  
+                    <div className="h-80 bg-card/50 rounded-md border p-4">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart
+                          data={payoff.payoff}
+                          margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                        >
+                          <defs>
+                            <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="rgb(34, 197, 94)" stopOpacity={0.2} />
+                              <stop offset="95%" stopColor="rgb(34, 197, 94)" stopOpacity={0} />
+                            </linearGradient>
+                            <linearGradient id="colorLoss" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="rgb(239, 68, 68)" stopOpacity={0.2} />
+                              <stop offset="95%" stopColor="rgb(239, 68, 68)" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <XAxis 
+                            dataKey="underlying_price" 
+                            tickFormatter={(value) => `$${value.toLocaleString()}`}
+                            tickLine={false}
+                            axisLine={false}
+                            tick={{ fill: '#8E9196', fontSize: 12 }}
+                          />
+                          <YAxis 
+                            tickFormatter={(value) => `$${value.toLocaleString()}`} 
+                            tickLine={false}
+                            axisLine={false}
+                            tick={{ fill: '#8E9196', fontSize: 12 }}
+                          />
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2D3748" />
+                          <Tooltip 
+                            formatter={(value: any) => [`$${parseFloat(value).toFixed(2)}`, 'Profit/Loss']}
+                            labelFormatter={(value) => `Price: $${parseFloat(value).toFixed(2)}`}
+                          />
+                          <ReferenceLine y={0} stroke="#8E9196" strokeWidth={1} />
+                          {strategy && (
+                            <ReferenceLine 
+                              x={strategy.underlying_price_at_construction} 
+                              stroke="#8E9196" 
+                              strokeDasharray="3 3" 
+                            />
+                          )}
+                          <Area 
+                            type="monotone" 
+                            dataKey="profit_loss" 
+                            stroke="#8B5CF6" 
+                            strokeWidth={2}
+                            fill="url(#colorProfit)"
+                            activeDot={{ r: 6 }}
+                            fillOpacity={1}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
-                </div>
-              )}
-            </TabsContent>
-            <TabsContent value="table" className="mt-0">
-              {!strategy ? (
-                <div className="h-80 flex items-center justify-center">
-                  <p className="text-muted-foreground">Build a strategy to see the payoff table</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Side</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Strike</TableHead>
-                        <TableHead>Expiry</TableHead>
-                        <TableHead>Price</TableHead>
-                        <TableHead>Quantity</TableHead>
-                        <TableHead>Delta</TableHead>
-                        <TableHead>Gamma</TableHead>
-                        <TableHead>Theta</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {strategy.legs.map((leg, index) => (
-                        <TableRow key={index}>
-                          <TableCell className={leg.side === 'BUY' ? 'text-green-500' : 'text-red-500'}>
-                            {leg.side}
-                          </TableCell>
-                          <TableCell>{leg.selected.option_type}</TableCell>
-                          <TableCell>${leg.selected.strike_price.toLocaleString()}</TableCell>
-                          <TableCell>{formatDate(leg.selected.expiry_time)}</TableCell>
-                          <TableCell>${leg.selected.mark_price.toFixed(2)}</TableCell>
-                          <TableCell>{(leg.ratio * parseFloat(quantity)).toFixed(1)}</TableCell>
-                          <TableCell>{leg.selected.delta.toFixed(2)}</TableCell>
-                          <TableCell>{leg.selected.gamma.toFixed(4)}</TableCell>
-                          <TableCell>{leg.selected.theta.toFixed(2)}</TableCell>
+                )}
+              </div>
+            )}
+            
+            {activeTab === "table" && (
+              <div className="mt-0">
+                {!strategy ? (
+                  <div className="h-80 flex items-center justify-center">
+                    <p className="text-muted-foreground">Build a strategy to see the payoff table</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Side</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Strike</TableHead>
+                          <TableHead>Expiry</TableHead>
+                          <TableHead>Price</TableHead>
+                          <TableHead>Quantity</TableHead>
+                          <TableHead>Delta</TableHead>
+                          <TableHead>Gamma</TableHead>
+                          <TableHead>Theta</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-              
-              {payoff && (
-                <div className="mt-6 border-t pt-4">
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="bg-muted/30 p-3 rounded-md">
-                      <div className="text-xs text-muted-foreground">Max Profit</div>
-                      <div className="text-green-500 font-medium">${payoff.max_profit.toFixed(2)}</div>
-                    </div>
-                    <div className="bg-muted/30 p-3 rounded-md">
-                      <div className="text-xs text-muted-foreground">Max Loss</div>
-                      <div className="text-red-500 font-medium">${Math.abs(payoff.max_loss).toFixed(2)}</div>
-                    </div>
-                    <div className="bg-muted/30 p-3 rounded-md">
-                      <div className="text-xs text-muted-foreground">Breakeven Points</div>
-                      <div className="font-medium">
-                        {payoff.breakevens.map((point, i) => (
-                          <span key={i}>
-                            ${point.toLocaleString()}
-                            {i < payoff.breakevens.length - 1 ? ', ' : ''}
-                          </span>
+                      </TableHeader>
+                      <TableBody>
+                        {strategy.legs.map((leg, index) => (
+                          <TableRow key={index}>
+                            <TableCell className={leg.side === 'BUY' ? 'text-green-500' : 'text-red-500'}>
+                              {leg.side}
+                            </TableCell>
+                            <TableCell>{leg.selected.option_type}</TableCell>
+                            <TableCell>${leg.selected.strike_price.toLocaleString()}</TableCell>
+                            <TableCell>{formatDate(leg.selected.expiry_time)}</TableCell>
+                            <TableCell>${leg.selected.mark_price.toFixed(2)}</TableCell>
+                            <TableCell>{(leg.ratio * parseFloat(quantity)).toFixed(1)}</TableCell>
+                            <TableCell>{leg.selected.delta.toFixed(2)}</TableCell>
+                            <TableCell>{leg.selected.gamma.toFixed(4)}</TableCell>
+                            <TableCell>{leg.selected.theta.toFixed(2)}</TableCell>
+                          </TableRow>
                         ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+                
+                {payoff && (
+                  <div className="mt-6 border-t pt-4">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="bg-muted/30 p-3 rounded-md">
+                        <div className="text-xs text-muted-foreground">Max Profit</div>
+                        <div className="text-green-500 font-medium">${payoff.max_profit.toFixed(2)}</div>
+                      </div>
+                      <div className="bg-muted/30 p-3 rounded-md">
+                        <div className="text-xs text-muted-foreground">Max Loss</div>
+                        <div className="text-red-500 font-medium">${Math.abs(payoff.max_loss).toFixed(2)}</div>
+                      </div>
+                      <div className="bg-muted/30 p-3 rounded-md">
+                        <div className="text-xs text-muted-foreground">Breakeven Points</div>
+                        <div className="font-medium">
+                          {payoff.breakevens.map((point, i) => (
+                            <span key={i}>
+                              ${point.toLocaleString()}
+                              {i < payoff.breakevens.length - 1 ? ', ' : ''}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
-            </TabsContent>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
