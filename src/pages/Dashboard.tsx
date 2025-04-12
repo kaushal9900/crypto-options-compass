@@ -45,15 +45,31 @@ const Dashboard: React.FC = () => {
       roi: "0%",
       roiChange: 0
     };
-
-    // Get total volume across all calls and puts
-    const totalVolume = [...btcData.calls, ...btcData.puts].reduce(
-      (sum, option) => sum + option.volume * option.mark_price, 
+    
+    // Get all available option contracts from the first expiry date
+    const allOptions = [];
+    
+    if (btcData.calls && btcData.puts) {
+      allOptions.push(...btcData.calls, ...btcData.puts);
+    } else if (btcData.options_by_expiry) {
+      // Extract options from the first expiry date
+      const expiryDates = Object.keys(btcData.options_by_expiry);
+      if (expiryDates.length > 0) {
+        const firstExpiry = expiryDates[0];
+        const callOptions = btcData.options_by_expiry[firstExpiry]?.call || [];
+        const putOptions = btcData.options_by_expiry[firstExpiry]?.put || [];
+        allOptions.push(...callOptions, ...putOptions);
+      }
+    }
+    
+    // Calculate total volume
+    const totalVolume = allOptions.reduce(
+      (sum, option) => sum + (option.volume * option.mark_price), 
       0
     );
     
     // Count options with volume > 0
-    const activeOptionsCount = [...btcData.calls, ...btcData.puts].filter(
+    const activeOptionsCount = allOptions.filter(
       option => option.volume > 0
     ).length;
 

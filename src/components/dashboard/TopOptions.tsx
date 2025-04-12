@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { OptionChain } from "@/services/optionsService";
+import { OptionChain, OptionContract } from "@/services/optionsService";
 
 type Option = {
   id: string;
@@ -34,31 +34,34 @@ const TopOptions: React.FC<TopOptionsProps> = ({
   const processTopOptions = (): Option[] => {
     if (!optionsData) return [];
     
-    const allOptions = [
-      ...optionsData.calls.map(call => ({
-        id: call.symbol,
-        strike: call.strike_price,
-        type: "CALL" as const,
-        expiry: new Date(call.expiry_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        premium: call.mark_price,
-        change: Math.random() * 20 - 10, // Mocking change as it's not in API
-        volume: call.volume,
-        iv: call.implied_volatility ? call.implied_volatility * 100 : 0,
-      })),
-      ...optionsData.puts.map(put => ({
-        id: put.symbol,
-        strike: put.strike_price,
-        type: "PUT" as const,
-        expiry: new Date(put.expiry_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        premium: put.mark_price,
-        change: Math.random() * 20 - 10, // Mocking change as it's not in API
-        volume: put.volume,
-        iv: put.implied_volatility ? put.implied_volatility * 100 : 0,
-      }))
-    ];
+    const allOptions: OptionContract[] = [];
+    
+    // Handle both data structures - direct calls/puts or options_by_expiry
+    if (optionsData.calls && optionsData.puts) {
+      allOptions.push(...optionsData.calls, ...optionsData.puts);
+    } else if (optionsData.options_by_expiry) {
+      // Extract options from all expiry dates
+      Object.keys(optionsData.options_by_expiry).forEach(expiryDate => {
+        const expiryData = optionsData.options_by_expiry[expiryDate];
+        if (expiryData.call) allOptions.push(...expiryData.call);
+        if (expiryData.put) allOptions.push(...expiryData.put);
+      });
+    }
+    
+    // Map to the Option type format
+    const mappedOptions = allOptions.map(contract => ({
+      id: contract.symbol,
+      strike: contract.strike_price,
+      type: contract.option_type.toUpperCase() as "CALL" | "PUT",
+      expiry: new Date(contract.expiry_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      premium: contract.mark_price,
+      change: Math.random() * 20 - 10, // Mocking change as it's not in API
+      volume: contract.volume,
+      iv: contract.implied_volatility ? contract.implied_volatility * 100 : 0,
+    }));
     
     // Sort by volume and take top 5
-    return allOptions
+    return mappedOptions
       .sort((a, b) => b.volume - a.volume)
       .slice(0, 5);
   };
@@ -93,49 +96,55 @@ const TopOptions: React.FC<TopOptionsProps> = ({
               <div className="col-span-1"></div>
             </div>
             <div className="divide-y">
-              {topOptions.map((option) => (
-                <div
-                  key={option.id}
-                  className="grid grid-cols-9 items-center px-4 py-3 hover:bg-muted/50 transition-colors"
-                >
-                  <div className="col-span-2 font-medium">${option.strike.toLocaleString()}</div>
-                  <div className="col-span-1">
-                    <Badge
-                      variant="outline"
+              {topOptions.length > 0 ? (
+                topOptions.map((option) => (
+                  <div
+                    key={option.id}
+                    className="grid grid-cols-9 items-center px-4 py-3 hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="col-span-2 font-medium">${option.strike.toLocaleString()}</div>
+                    <div className="col-span-1">
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "font-medium",
+                          option.type === "CALL" ? "border-profit text-profit" : "border-loss text-loss"
+                        )}
+                      >
+                        {option.type}
+                      </Badge>
+                    </div>
+                    <div className="col-span-1 text-sm">{option.expiry}</div>
+                    <div className="col-span-1 text-right font-medium">
+                      ${option.premium.toFixed(2)}
+                    </div>
+                    <div
                       className={cn(
-                        "font-medium",
-                        option.type === "CALL" ? "border-profit text-profit" : "border-loss text-loss"
+                        "col-span-1 text-right flex justify-end items-center",
+                        option.change >= 0 ? "text-profit" : "text-loss"
                       )}
                     >
-                      {option.type}
-                    </Badge>
+                      {option.change >= 0 ? (
+                        <ArrowUpRight className="mr-1 h-3 w-3" />
+                      ) : (
+                        <ArrowDownRight className="mr-1 h-3 w-3" />
+                      )}
+                      {Math.abs(option.change).toFixed(1)}%
+                    </div>
+                    <div className="col-span-1 text-right">{option.volume}</div>
+                    <div className="col-span-1 text-right">{option.iv.toFixed(1)}%</div>
+                    <div className="col-span-1 text-right">
+                      <Button size="sm" variant="outline" className="h-7 w-16 text-xs">
+                        Trade
+                      </Button>
+                    </div>
                   </div>
-                  <div className="col-span-1 text-sm">{option.expiry}</div>
-                  <div className="col-span-1 text-right font-medium">
-                    ${option.premium.toFixed(2)}
-                  </div>
-                  <div
-                    className={cn(
-                      "col-span-1 text-right flex justify-end items-center",
-                      option.change >= 0 ? "text-profit" : "text-loss"
-                    )}
-                  >
-                    {option.change >= 0 ? (
-                      <ArrowUpRight className="mr-1 h-3 w-3" />
-                    ) : (
-                      <ArrowDownRight className="mr-1 h-3 w-3" />
-                    )}
-                    {Math.abs(option.change).toFixed(1)}%
-                  </div>
-                  <div className="col-span-1 text-right">{option.volume}</div>
-                  <div className="col-span-1 text-right">{option.iv.toFixed(1)}%</div>
-                  <div className="col-span-1 text-right">
-                    <Button size="sm" variant="outline" className="h-7 w-16 text-xs">
-                      Trade
-                    </Button>
-                  </div>
+                ))
+              ) : (
+                <div className="p-4 text-center text-muted-foreground">
+                  No active options found
                 </div>
-              ))}
+              )}
             </div>
           </div>
         )}

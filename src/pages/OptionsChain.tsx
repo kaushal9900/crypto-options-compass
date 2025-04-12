@@ -28,17 +28,6 @@ const extractExpiryDate = (expiryTime: string): string => {
   });
 };
 
-const groupByExpiry = (options: any[]): Record<string, any[]> => {
-  return options.reduce((acc, option) => {
-    const expiryKey = option.expiry_time;
-    if (!acc[expiryKey]) {
-      acc[expiryKey] = [];
-    }
-    acc[expiryKey].push(option);
-    return acc;
-  }, {});
-};
-
 const OptionsChain: React.FC = () => {
   const [displayMode, setDisplayMode] = useState<"basic" | "advanced">("basic");
   const [selectedAsset, setSelectedAsset] = useState<string>("");
@@ -82,9 +71,8 @@ const OptionsChain: React.FC = () => {
         setOptionChain(data);
         
         // Extract and format expiry dates
-        if (data.calls.length > 0) {
-          const groupedCalls = groupByExpiry(data.calls);
-          const formattedDates = Object.keys(groupedCalls).map(date => {
+        if (data.options_by_expiry) {
+          const formattedDates = Object.keys(data.options_by_expiry).map(date => {
             const formattedDate = formatDate(date);
             const daysToExpiry = Math.ceil((new Date(date).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
             return {
@@ -117,10 +105,24 @@ const OptionsChain: React.FC = () => {
   const filteredOptions = React.useMemo(() => {
     if (!optionChain || !selectedExpiry) return { calls: [], puts: [] };
     
-    return {
-      calls: optionChain.calls.filter(call => call.expiry_time === selectedExpiry),
-      puts: optionChain.puts.filter(put => put.expiry_time === selectedExpiry)
-    };
+    // Handle both data structures
+    if (optionChain.options_by_expiry && optionChain.options_by_expiry[selectedExpiry]) {
+      const expiryData = optionChain.options_by_expiry[selectedExpiry];
+      return {
+        calls: expiryData.call || [],
+        puts: expiryData.put || []
+      };
+    }
+    
+    // Fallback to old structure if present
+    if (optionChain.calls && optionChain.puts) {
+      return {
+        calls: optionChain.calls.filter(call => call.expiry_time === selectedExpiry),
+        puts: optionChain.puts.filter(put => put.expiry_time === selectedExpiry)
+      };
+    }
+    
+    return { calls: [], puts: [] };
   }, [optionChain, selectedExpiry]);
   
   const handleRefresh = async () => {
