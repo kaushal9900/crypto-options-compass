@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from "recharts";
 import { getAvailableAssets } from "@/services/optionsService";
 import { getStrategyDefinitions, constructStrategy, calculatePayoff, StrategyDefinition, Strategy, StrategyPayoff } from "@/services/strategyService";
@@ -266,12 +266,6 @@ const StrategyBuilder: React.FC = () => {
                   <TabsTrigger value="graph">Payoff Graph</TabsTrigger>
                   <TabsTrigger value="table">Payoff Table</TabsTrigger>
                 </TabsList>
-              
-                {/* The TabsContent components need to be inside the Tabs component */}
-                <div className="hidden">
-                  {/* This is just a placeholder to make React happy */}
-                  {/* The actual content will be rendered outside based on activeTab state */}
-                </div>
               </Tabs>
               
               {payoff && (
@@ -408,9 +402,9 @@ const StrategyBuilder: React.FC = () => {
                             <TableCell>{formatDate(leg.selected.expiry_time)}</TableCell>
                             <TableCell>${leg.selected.mark_price.toFixed(2)}</TableCell>
                             <TableCell>{(leg.ratio * parseFloat(quantity)).toFixed(1)}</TableCell>
-                            <TableCell>{leg.selected.delta.toFixed(2)}</TableCell>
-                            <TableCell>{leg.selected.gamma.toFixed(4)}</TableCell>
-                            <TableCell>{leg.selected.theta.toFixed(2)}</TableCell>
+                            <TableCell>{leg.selected.delta?.toFixed(2) || "N/A"}</TableCell>
+                            <TableCell>{leg.selected.gamma?.toFixed(4) || "N/A"}</TableCell>
+                            <TableCell>{leg.selected.theta?.toFixed(2) || "N/A"}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -432,12 +426,16 @@ const StrategyBuilder: React.FC = () => {
                       <div className="bg-muted/30 p-3 rounded-md">
                         <div className="text-xs text-muted-foreground">Breakeven Points</div>
                         <div className="font-medium">
-                          {payoff.breakevens.map((point, i) => (
-                            <span key={i}>
-                              ${point.toLocaleString()}
-                              {i < payoff.breakevens.length - 1 ? ', ' : ''}
-                            </span>
-                          ))}
+                          {payoff.breakevens && payoff.breakevens.length > 0 ? (
+                            payoff.breakevens.map((point, i) => (
+                              <span key={i}>
+                                ${point.toLocaleString()}
+                                {i < payoff.breakevens.length - 1 ? ', ' : ''}
+                              </span>
+                            ))
+                          ) : (
+                            "None"
+                          )}
                         </div>
                       </div>
                     </div>
