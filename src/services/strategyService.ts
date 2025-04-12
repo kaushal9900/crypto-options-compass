@@ -31,6 +31,15 @@ export interface StrategyPayoff {
   breakevens: number[];
 }
 
+export interface CustomStrategyRequest {
+  underlying_asset: string;
+  legs: {
+    option_symbol: string;
+    side: 'BUY' | 'SELL';
+    quantity: number;
+  }[];
+}
+
 // Fetch available strategy definitions
 export async function getStrategyDefinitions(): Promise<StrategyDefinition[]> {
   return await api.get<StrategyDefinition[]>('/strategies/definitions');
@@ -47,6 +56,13 @@ export async function constructStrategy(
     underlying_asset: asset,
     base_quantity: quantity,
   });
+}
+
+// Construct a custom strategy
+export async function constructCustomStrategy(
+  request: CustomStrategyRequest
+): Promise<Strategy> {
+  return await api.post<Strategy>('/strategies/custom', request);
 }
 
 // Calculate strategy payoff

@@ -12,10 +12,10 @@ export interface OptionContract {
   volume: number;
   open_interest: number;
   implied_volatility?: number;
-  delta: number;
-  gamma: number;
-  theta: number;
-  vega: number;
+  delta?: number;
+  gamma?: number;
+  theta?: number;
+  vega?: number;
   mark_price: number;
   underlying_asset?: string;
 }
@@ -60,4 +60,24 @@ export async function getOptionChain(asset: string): Promise<OptionChain> {
   }
   
   return data;
+}
+
+// Fetch option chain for specific asset and expiry
+export async function getOptionChainByExpiry(asset: string, expiry: string): Promise<{
+  calls: OptionContract[];
+  puts: OptionContract[];
+}> {
+  const data = await getOptionChain(asset);
+  
+  if (data.options_by_expiry && data.options_by_expiry[expiry]) {
+    return {
+      calls: data.options_by_expiry[expiry].call || [],
+      puts: data.options_by_expiry[expiry].put || []
+    };
+  }
+  
+  return {
+    calls: [],
+    puts: []
+  };
 }

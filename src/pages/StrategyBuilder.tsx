@@ -5,14 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from "recharts";
-import { getAvailableAssets } from "@/services/optionsService";
+import { getAvailableAssets, OptionContract } from "@/services/optionsService";
 import { getStrategyDefinitions, constructStrategy, calculatePayoff, StrategyDefinition, Strategy, StrategyPayoff } from "@/services/strategyService";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronUp, Search, Filter, Plus, Minus, ZoomOut } from "lucide-react";
+import { ChevronDown, ChevronUp, Search, Filter, Plus, Minus } from "lucide-react";
+import PayoffGraph from "@/components/strategy/PayoffGraph";
+import PayoffTable from "@/components/strategy/PayoffTable";
+import CustomStrategyBuilder, { CustomStrategyOption } from "@/components/strategy/CustomStrategyBuilder";
 
 const StrategyBuilder: React.FC = () => {
   const [assets, setAssets] = useState<string[]>([]);
@@ -25,6 +26,7 @@ const StrategyBuilder: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("graph");
   const [strategyType, setStrategyType] = useState<string>("all");
+  const [isCustomStrategy, setIsCustomStrategy] = useState<boolean>(false);
   const { toast } = useToast();
 
   // Fetch assets and strategy definitions on component mount
@@ -59,7 +61,7 @@ const StrategyBuilder: React.FC = () => {
   }, [toast]);
 
   const handleConstructStrategy = async () => {
-    if (!selectedAsset || !selectedStrategy) {
+    if (!selectedAsset || (!selectedStrategy && !isCustomStrategy)) {
       toast({
         title: "Error",
         description: "Please select both an asset and a strategy",
@@ -107,13 +109,16 @@ const StrategyBuilder: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
+  const handleBuildCustomStrategy = async (selectedOptions: CustomStrategyOption[]) => {
+    // In a real implementation, this would send the custom options to the backend
+    // For now, we'll just show a toast
+    toast({
+      title: "Custom Strategy",
+      description: `Building custom strategy with ${selectedOptions.length} options`
     });
+    
+    // Here you would make an API call to your backend with the selectedOptions
+    // And then process the response similar to handleConstructStrategy
   };
 
   const filteredStrategies = strategies.filter(strategy => {
@@ -145,7 +150,7 @@ const StrategyBuilder: React.FC = () => {
           <Button 
             size="sm" 
             onClick={handleConstructStrategy}
-            disabled={isLoading || !selectedAsset || !selectedStrategy}
+            disabled={isLoading || !selectedAsset || (!selectedStrategy && !isCustomStrategy)}
           >
             {isLoading ? "Building..." : "Build Strategy"}
           </Button>
@@ -202,17 +207,38 @@ const StrategyBuilder: React.FC = () => {
                 />
               </div>
               
-              <div className="space-y-2 max-h-[500px] overflow-y-auto">
+              {/* Add the Custom Strategy option at the top */}
+              <div 
+                className={cn(
+                  "rounded-md p-2 cursor-pointer border bg-secondary",
+                  isCustomStrategy ? "border-primary" : "border-border hover:bg-secondary/70"
+                )}
+                onClick={() => {
+                  setIsCustomStrategy(true);
+                  setSelectedStrategy("");
+                }}
+              >
+                <div className="font-medium text-sm">Custom Strategy</div>
+                <div className="text-xs text-muted-foreground">
+                  Build your own strategy with selected options
+                </div>
+              </div>
+              
+              {/* Strategy list */}
+              <div className="space-y-2 max-h-[400px] overflow-y-auto">
                 {filteredStrategies.map((strategy) => (
                   <div 
                     key={strategy.name}
                     className={cn(
                       "rounded-md p-2 cursor-pointer border",
-                      selectedStrategy === strategy.name 
+                      selectedStrategy === strategy.name && !isCustomStrategy
                         ? "border-primary bg-primary/10" 
                         : "border-border hover:bg-muted/50"
                     )}
-                    onClick={() => setSelectedStrategy(strategy.name)}
+                    onClick={() => {
+                      setSelectedStrategy(strategy.name);
+                      setIsCustomStrategy(false);
+                    }}
                   >
                     <div className="font-medium text-sm">{strategy.name}</div>
                     <div className="text-xs text-muted-foreground">
@@ -222,228 +248,90 @@ const StrategyBuilder: React.FC = () => {
                 ))}
               </div>
               
-              <div className="pt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="quantity">Quantity</Label>
-                  <div className="flex">
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      className="rounded-r-none"
-                      onClick={() => setQuantity(prev => (parseFloat(prev) - 0.1).toFixed(1))}
-                    >
-                      <Minus className="h-4 w-4" />
-                    </Button>
-                    <Input
-                      id="quantity"
-                      type="number"
-                      step="0.1"
-                      min="0.1"
-                      value={quantity}
-                      onChange={(e) => setQuantity(e.target.value)}
-                      className="rounded-none text-center"
-                    />
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      className="rounded-l-none"
-                      onClick={() => setQuantity(prev => (parseFloat(prev) + 0.1).toFixed(1))}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
+              {!isCustomStrategy && (
+                <div className="pt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="quantity">Quantity</Label>
+                    <div className="flex">
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        className="rounded-r-none"
+                        onClick={() => setQuantity(prev => (Math.max(0.1, parseFloat(prev) - 0.1)).toFixed(1))}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <Input
+                        id="quantity"
+                        type="number"
+                        step="0.1"
+                        min="0.1"
+                        value={quantity}
+                        onChange={(e) => setQuantity(e.target.value)}
+                        className="rounded-none text-center"
+                      />
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        className="rounded-l-none"
+                        onClick={() => setQuantity(prev => (parseFloat(prev) + 0.1).toFixed(1))}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </CardContent>
         </Card>
         
         <Card className="lg:col-span-9">
-          <CardHeader className="pb-3 border-b">
-            <div className="flex justify-between items-center">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList>
-                  <TabsTrigger value="graph">Payoff Graph</TabsTrigger>
-                  <TabsTrigger value="table">Payoff Table</TabsTrigger>
-                </TabsList>
-              </Tabs>
-              
-              {payoff && (
-                <div className="flex items-center space-x-4">
-                  <div className="text-xs space-x-2">
-                    <span className="inline-block w-3 h-3 rounded-full bg-green-500"></span>
-                    <span>Max Profit: ${payoff.max_profit.toFixed(2)}</span>
-                  </div>
-                  <div className="text-xs space-x-2">
-                    <span className="inline-block w-3 h-3 rounded-full bg-red-500"></span>
-                    <span>Max Loss: ${Math.abs(payoff.max_loss).toFixed(2)}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardHeader>
-          
-          <CardContent className="pt-6">
-            {/* Render content based on activeTab state */}
-            {activeTab === "graph" && (
-              <div className="mt-0">
-                {!payoff ? (
-                  <div className="h-80 flex items-center justify-center">
-                    <p className="text-muted-foreground">Build a strategy to see the payoff chart</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center space-x-2">
-                        {strategy && (
-                          <div>
-                            <span className="text-sm font-medium">{strategy.definition_name}</span>
-                            <span className="text-xs text-muted-foreground ml-2">
-                              ({strategy.underlying_asset} @ ${strategy.underlying_price_at_construction.toLocaleString()})
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      <Button variant="outline" size="sm">
-                        <ZoomOut className="h-4 w-4 mr-1" />
-                        Zoom Out
-                      </Button>
-                    </div>
+          {isCustomStrategy ? (
+            <CustomStrategyBuilder 
+              assets={assets}
+              selectedAsset={selectedAsset}
+              onAssetChange={setSelectedAsset}
+              onBuildCustomStrategy={handleBuildCustomStrategy}
+            />
+          ) : (
+            <>
+              <CardHeader className="pb-3 border-b">
+                <div className="flex justify-between items-center">
+                  <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                    <TabsList>
+                      <TabsTrigger value="graph">Payoff Graph</TabsTrigger>
+                      <TabsTrigger value="table">Payoff Table</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
                   
-                    <div className="h-80 bg-card/50 rounded-md border p-4">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart
-                          data={payoff.payoff}
-                          margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                        >
-                          <defs>
-                            <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="rgb(34, 197, 94)" stopOpacity={0.2} />
-                              <stop offset="95%" stopColor="rgb(34, 197, 94)" stopOpacity={0} />
-                            </linearGradient>
-                            <linearGradient id="colorLoss" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="rgb(239, 68, 68)" stopOpacity={0.2} />
-                              <stop offset="95%" stopColor="rgb(239, 68, 68)" stopOpacity={0} />
-                            </linearGradient>
-                          </defs>
-                          <XAxis 
-                            dataKey="underlying_price" 
-                            tickFormatter={(value) => `$${value.toLocaleString()}`}
-                            tickLine={false}
-                            axisLine={false}
-                            tick={{ fill: '#8E9196', fontSize: 12 }}
-                          />
-                          <YAxis 
-                            tickFormatter={(value) => `$${value.toLocaleString()}`} 
-                            tickLine={false}
-                            axisLine={false}
-                            tick={{ fill: '#8E9196', fontSize: 12 }}
-                          />
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2D3748" />
-                          <Tooltip 
-                            formatter={(value: any) => [`$${parseFloat(value).toFixed(2)}`, 'Profit/Loss']}
-                            labelFormatter={(value) => `Price: $${parseFloat(value).toFixed(2)}`}
-                          />
-                          <ReferenceLine y={0} stroke="#8E9196" strokeWidth={1} />
-                          {strategy && (
-                            <ReferenceLine 
-                              x={strategy.underlying_price_at_construction} 
-                              stroke="#8E9196" 
-                              strokeDasharray="3 3" 
-                            />
-                          )}
-                          <Area 
-                            type="monotone" 
-                            dataKey="profit_loss" 
-                            stroke="#8B5CF6" 
-                            strokeWidth={2}
-                            fill="url(#colorProfit)"
-                            activeDot={{ r: 6 }}
-                            fillOpacity={1}
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
+                  {payoff && (
+                    <div className="flex items-center space-x-4">
+                      <div className="text-xs space-x-2">
+                        <span className="inline-block w-3 h-3 rounded-full bg-green-500"></span>
+                        <span>Max Profit: ${payoff.max_profit.toFixed(2)}</span>
+                      </div>
+                      <div className="text-xs space-x-2">
+                        <span className="inline-block w-3 h-3 rounded-full bg-red-500"></span>
+                        <span>Max Loss: ${Math.abs(payoff.max_loss).toFixed(2)}</span>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {activeTab === "table" && (
-              <div className="mt-0">
-                {!strategy ? (
-                  <div className="h-80 flex items-center justify-center">
-                    <p className="text-muted-foreground">Build a strategy to see the payoff table</p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Side</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Strike</TableHead>
-                          <TableHead>Expiry</TableHead>
-                          <TableHead>Price</TableHead>
-                          <TableHead>Quantity</TableHead>
-                          <TableHead>Delta</TableHead>
-                          <TableHead>Gamma</TableHead>
-                          <TableHead>Theta</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {strategy.legs.map((leg, index) => (
-                          <TableRow key={index}>
-                            <TableCell className={leg.side === 'BUY' ? 'text-green-500' : 'text-red-500'}>
-                              {leg.side}
-                            </TableCell>
-                            <TableCell>{leg.selected.option_type}</TableCell>
-                            <TableCell>${leg.selected.strike_price.toLocaleString()}</TableCell>
-                            <TableCell>{formatDate(leg.selected.expiry_time)}</TableCell>
-                            <TableCell>${leg.selected.mark_price.toFixed(2)}</TableCell>
-                            <TableCell>{(leg.ratio * parseFloat(quantity)).toFixed(1)}</TableCell>
-                            <TableCell>{leg.selected.delta?.toFixed(2) || "N/A"}</TableCell>
-                            <TableCell>{leg.selected.gamma?.toFixed(4) || "N/A"}</TableCell>
-                            <TableCell>{leg.selected.theta?.toFixed(2) || "N/A"}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                  )}
+                </div>
+              </CardHeader>
+              
+              <CardContent className="pt-6">
+                {/* Render content based on activeTab state */}
+                {activeTab === "graph" && (
+                  <PayoffGraph strategy={strategy} payoff={payoff} />
                 )}
                 
-                {payoff && (
-                  <div className="mt-6 border-t pt-4">
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="bg-muted/30 p-3 rounded-md">
-                        <div className="text-xs text-muted-foreground">Max Profit</div>
-                        <div className="text-green-500 font-medium">${payoff.max_profit.toFixed(2)}</div>
-                      </div>
-                      <div className="bg-muted/30 p-3 rounded-md">
-                        <div className="text-xs text-muted-foreground">Max Loss</div>
-                        <div className="text-red-500 font-medium">${Math.abs(payoff.max_loss).toFixed(2)}</div>
-                      </div>
-                      <div className="bg-muted/30 p-3 rounded-md">
-                        <div className="text-xs text-muted-foreground">Breakeven Points</div>
-                        <div className="font-medium">
-                          {payoff.breakevens && payoff.breakevens.length > 0 ? (
-                            payoff.breakevens.map((point, i) => (
-                              <span key={i}>
-                                ${point.toLocaleString()}
-                                {i < payoff.breakevens.length - 1 ? ', ' : ''}
-                              </span>
-                            ))
-                          ) : (
-                            "None"
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                {activeTab === "table" && (
+                  <PayoffTable strategy={strategy} payoff={payoff} quantity={quantity} />
                 )}
-              </div>
-            )}
-          </CardContent>
+              </CardContent>
+            </>
+          )}
         </Card>
       </div>
     </div>
