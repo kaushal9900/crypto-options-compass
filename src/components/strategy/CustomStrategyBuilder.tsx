@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
-import { OptionContract } from "@/services/optionsService";
-import { Plus, X } from "lucide-react";
+import { getOptionChain, OptionContract } from "@/services/optionsService";
+import { Plus, X, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 interface CustomStrategyBuilderProps {
@@ -37,32 +37,95 @@ const CustomStrategyBuilder: React.FC<CustomStrategyBuilderProps> = ({
   const [selectedOptions, setSelectedOptions] = useState<CustomStrategyOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("calls");
+  const [expiryDates, setExpiryDates] = useState<{value: string, label: string}[]>([]);
+  const [selectedExpiry, setSelectedExpiry] = useState<string>("");
   const { toast } = useToast();
 
   // Fetch option chain when asset changes
-  const fetchOptionChain = async () => {
-    setIsLoading(true);
-    try {
-      // This would normally call the API to get the option chain
-      // For now, we'll simulate with empty arrays
-      setOptionChain({
-        calls: [],
-        puts: []
-      });
-      toast({
-        title: "Option chain loaded",
-        description: `Option chain for ${selectedAsset} loaded successfully`
-      });
-    } catch (error) {
-      console.error("Failed to fetch option chain:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch option chain",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  useEffect(() => {
+    if (!selectedAsset) return;
+    
+    const fetchOptionChain = async () => {
+      setIsLoading(true);
+      try {
+        const data = await getOptionChain(selectedAsset);
+        
+        // Extract and format expiry dates
+        if (data.options_by_expiry) {
+          const formattedDates = Object.keys(data.options_by_expiry).map(date => {
+            const formattedDate = formatDate(date);
+            const daysToExpiry = Math.ceil((new Date(date).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
+            return {
+              value: date,
+              label: `${formattedDate} (${daysToExpiry}d)`
+            };
+          });
+          
+          setExpiryDates(formattedDates);
+          if (formattedDates.length > 0) {
+            setSelectedExpiry(formattedDates[0].value);
+            
+            // Set option chain for the first expiry date
+            if (data.options_by_expiry[formattedDates[0].value]) {
+              setOptionChain({
+                calls: data.options_by_expiry[formattedDates[0].value].call || [],
+                puts: data.options_by_expiry[formattedDates[0].value].put || []
+              });
+            }
+          }
+        }
+        
+        toast({
+          title: "Option chain loaded",
+          description: `Option chain for ${selectedAsset} loaded successfully`
+        });
+      } catch (error) {
+        console.error("Failed to fetch option chain:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch option chain",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchOptionChain();
+  }, [selectedAsset, toast]);
+  
+  // Update option chain when expiry date changes
+  useEffect(() => {
+    if (!selectedExpiry || !selectedAsset) return;
+    
+    const updateOptionChainByExpiry = async () => {
+      setIsLoading(true);
+      try {
+        const data = await getOptionChain(selectedAsset);
+        
+        if (data.options_by_expiry && data.options_by_expiry[selectedExpiry]) {
+          setOptionChain({
+            calls: data.options_by_expiry[selectedExpiry].call || [],
+            puts: data.options_by_expiry[selectedExpiry].put || []
+          });
+        }
+      } catch (error) {
+        console.error("Failed to update option chain:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    updateOptionChainByExpiry();
+  }, [selectedExpiry, selectedAsset]);
+
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
   };
 
   const addOptionToStrategy = (option: OptionContract, side: 'BUY' | 'SELL') => {
@@ -118,13 +181,23 @@ const CustomStrategyBuilder: React.FC<CustomStrategyBuilderProps> = ({
             </SelectContent>
           </Select>
           
-          <Button 
-            size="sm" 
-            onClick={fetchOptionChain}
-            disabled={isLoading || !selectedAsset}
-          >
-            {isLoading ? "Loading..." : "Load Options"}
-          </Button>
+          {expiryDates.length > 0 && (
+            <Select 
+              value={selectedExpiry} 
+              onValueChange={setSelectedExpiry}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {expiryDates.map((date) => (
+                  <SelectItem key={date.value} value={date.value}>
+                    {date.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
 
@@ -212,10 +285,13 @@ const CustomStrategyBuilder: React.FC<CustomStrategyBuilderProps> = ({
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-6">Loading option chain...</div>
+            <div className="text-center py-6">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+              <p>Loading option chain...</p>
+            </div>
           ) : optionChain.calls.length === 0 && optionChain.puts.length === 0 ? (
             <div className="text-center py-6 text-muted-foreground">
-              No option chain data. Click "Load Options" to fetch the option chain.
+              No option chain data available for {selectedAsset}.
             </div>
           ) : (
             <div className="max-h-[400px] overflow-y-auto">
