@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronDown, Filter, Search } from "lucide-react";
+import { ChevronDown, Filter, Search, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getAvailableAssets, getOptionChain, OptionChain as OptionChainType } from "@/services/optionsService";
 import { useToast } from "@/components/ui/use-toast";
@@ -36,6 +36,7 @@ const OptionsChain: React.FC = () => {
   const [selectedExpiry, setSelectedExpiry] = useState<string>("");
   const [optionChain, setOptionChain] = useState<OptionChainType | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [filterITM, setFilterITM] = useState<boolean>(false);
   const { toast } = useToast();
   
   // Fetch available assets on component mount
@@ -124,6 +125,21 @@ const OptionsChain: React.FC = () => {
     
     return { calls: [], puts: [] };
   }, [optionChain, selectedExpiry]);
+
+  // Further filter options if filterITM is true
+  const displayOptions = React.useMemo(() => {
+    if (!optionChain || !filteredOptions.calls.length) return filteredOptions;
+    
+    if (filterITM) {
+      const underlyingPrice = optionChain.underlying_price;
+      return {
+        calls: filteredOptions.calls.filter(call => call.strike_price <= underlyingPrice * 1.15),
+        puts: filteredOptions.puts.filter(put => put.strike_price >= underlyingPrice * 0.85)
+      };
+    }
+    
+    return filteredOptions;
+  }, [filteredOptions, optionChain, filterITM]);
   
   const handleRefresh = async () => {
     if (!selectedAsset) return;
@@ -151,11 +167,15 @@ const OptionsChain: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold">Options Chain</h1>
+        <h1 className="text-xl font-medium">Options Chain</h1>
         <div className="flex space-x-2">
-          <Button size="sm" variant="outline">
+          <Button 
+            size="sm" 
+            variant="outline"
+            onClick={() => setFilterITM(!filterITM)}
+          >
             <Filter className="mr-2 h-4 w-4" />
-            Filters
+            {filterITM ? "Show All" : "Show ITM Only"}
           </Button>
           <Button 
             size="sm" 
@@ -163,6 +183,7 @@ const OptionsChain: React.FC = () => {
             onClick={handleRefresh}
             disabled={isLoading}
           >
+            <RefreshCw className="mr-2 h-4 w-4" />
             {isLoading ? "Loading..." : "Refresh"}
           </Button>
         </div>
@@ -171,8 +192,10 @@ const OptionsChain: React.FC = () => {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex justify-between items-center">
-            <CardTitle className="text-xl">
-              {selectedAsset ? `${selectedAsset} Options` : "Select an Asset"}
+            <CardTitle className="text-lg">
+              {selectedAsset && optionChain ? 
+                `${selectedAsset} @ $${optionChain.underlying_price.toLocaleString()}` : 
+                "Select an Asset"}
             </CardTitle>
             <div className="flex gap-4 items-center">
               <div className="flex items-center gap-2">
@@ -182,7 +205,7 @@ const OptionsChain: React.FC = () => {
                   onValueChange={setSelectedAsset}
                   disabled={availableAssets.length === 0}
                 >
-                  <SelectTrigger className="w-[150px]">
+                  <SelectTrigger className="w-[120px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -202,7 +225,7 @@ const OptionsChain: React.FC = () => {
                   onValueChange={setSelectedExpiry}
                   disabled={expiryDates.length === 0}
                 >
-                  <SelectTrigger className="w-[240px]">
+                  <SelectTrigger className="w-[180px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -233,7 +256,7 @@ const OptionsChain: React.FC = () => {
             <div className="h-60 flex items-center justify-center">
               <p className="text-muted-foreground">Select an asset to view option chain</p>
             </div>
-          ) : filteredOptions.calls.length === 0 ? (
+          ) : displayOptions.calls.length === 0 ? (
             <div className="h-60 flex items-center justify-center">
               <p className="text-muted-foreground">No option data available for the selected expiry date</p>
             </div>
@@ -290,15 +313,17 @@ const OptionsChain: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {filteredOptions.calls.map((call) => {
+                  {displayOptions.calls.map((call) => {
                     // Find corresponding put with same strike price
-                    const matchingPut = filteredOptions.puts.find(
+                    const matchingPut = displayOptions.puts.find(
                       (put) => put.strike_price === call.strike_price
                     );
                     
                     if (!matchingPut) return null;
                     
-                    const isAtm = Math.abs(call.strike_price - optionChain.underlying_price) < 500;
+                    const isAtm = Math.abs(call.strike_price - optionChain.underlying_price) < optionChain.underlying_price * 0.01;
+                    const isItm = call.strike_price < optionChain.underlying_price;
+                    const isPutItm = matchingPut.strike_price > optionChain.underlying_price;
                     
                     return (
                       <tr 
@@ -309,10 +334,10 @@ const OptionsChain: React.FC = () => {
                         )}
                       >
                         {/* CALLS */}
-                        <td className="p-2 text-right">${call.bid_price.toFixed(2)}</td>
-                        <td className="p-2 text-right">${call.ask_price.toFixed(2)}</td>
-                        <td className="p-2 text-right">${call.last_price.toFixed(2)}</td>
-                        <td className="p-2 text-right font-medium text-profit">
+                        <td className={cn("p-2 text-right", isItm && "text-green-500 font-medium")}>${call.bid_price.toFixed(2)}</td>
+                        <td className={cn("p-2 text-right", isItm && "text-green-500 font-medium")}>${call.ask_price.toFixed(2)}</td>
+                        <td className={cn("p-2 text-right", isItm && "text-green-500 font-medium")}>${call.last_price.toFixed(2)}</td>
+                        <td className="p-2 text-right font-medium text-green-500">
                           {/* Change data not provided in API */}
                           N/A
                         </td>
@@ -334,10 +359,10 @@ const OptionsChain: React.FC = () => {
                         </td>
                         
                         {/* PUTS */}
-                        <td className="p-2 text-right">${matchingPut.bid_price.toFixed(2)}</td>
-                        <td className="p-2 text-right">${matchingPut.ask_price.toFixed(2)}</td>
-                        <td className="p-2 text-right">${matchingPut.last_price.toFixed(2)}</td>
-                        <td className="p-2 text-right font-medium text-loss">
+                        <td className={cn("p-2 text-right", isPutItm && "text-green-500 font-medium")}>${matchingPut.bid_price.toFixed(2)}</td>
+                        <td className={cn("p-2 text-right", isPutItm && "text-green-500 font-medium")}>${matchingPut.ask_price.toFixed(2)}</td>
+                        <td className={cn("p-2 text-right", isPutItm && "text-green-500 font-medium")}>${matchingPut.last_price.toFixed(2)}</td>
+                        <td className="p-2 text-right font-medium text-red-500">
                           {/* Change data not provided in API */}
                           N/A
                         </td>

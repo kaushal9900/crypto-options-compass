@@ -56,3 +56,12 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
+
+/* Custom colors for profit/loss */
+.text-profit {
+  color: rgb(34, 197, 94);
+}
+
+.text-loss {
+  color: rgb(239, 68, 68);
+}

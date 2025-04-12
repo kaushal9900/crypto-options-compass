@@ -46,20 +46,23 @@ const Dashboard: React.FC = () => {
       roiChange: 0
     };
     
-    // Get all available option contracts from the first expiry date
+    // Get all available option contracts from all expiry dates
     const allOptions = [];
     
-    if (btcData.calls && btcData.puts) {
+    if (btcData.options_by_expiry) {
+      // Extract options from all expiry dates
+      Object.keys(btcData.options_by_expiry).forEach(expiry => {
+        const expiryData = btcData.options_by_expiry[expiry];
+        if (expiryData.call && Array.isArray(expiryData.call)) {
+          allOptions.push(...expiryData.call);
+        }
+        if (expiryData.put && Array.isArray(expiryData.put)) {
+          allOptions.push(...expiryData.put);
+        }
+      });
+    } else if (btcData.calls && btcData.puts) {
+      // Fallback to old structure
       allOptions.push(...btcData.calls, ...btcData.puts);
-    } else if (btcData.options_by_expiry) {
-      // Extract options from the first expiry date
-      const expiryDates = Object.keys(btcData.options_by_expiry);
-      if (expiryDates.length > 0) {
-        const firstExpiry = expiryDates[0];
-        const callOptions = btcData.options_by_expiry[firstExpiry]?.call || [];
-        const putOptions = btcData.options_by_expiry[firstExpiry]?.put || [];
-        allOptions.push(...callOptions, ...putOptions);
-      }
     }
     
     // Calculate total volume
@@ -90,7 +93,7 @@ const Dashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold">Dashboard</h1>
+        <h1 className="text-xl font-medium">Market Overview</h1>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

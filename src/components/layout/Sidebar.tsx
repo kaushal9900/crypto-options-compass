@@ -6,11 +6,7 @@ import {
   BarChart3,
   LineChart,
   LayoutGrid,
-  Wallet,
-  Calculator,
-  Settings,
   Layers,
-  CircleDollarSign
 } from "lucide-react";
 
 type NavItem = {
@@ -40,34 +36,14 @@ const navItems: NavItem[] = [
     href: "/charts",
     icon: LineChart,
   },
-  {
-    title: "Portfolio",
-    href: "/portfolio",
-    icon: Wallet,
-  },
-  {
-    title: "Calculator",
-    href: "/calculator",
-    icon: Calculator,
-  },
-  {
-    title: "Markets",
-    href: "/markets",
-    icon: CircleDollarSign,
-  },
-  {
-    title: "Settings",
-    href: "/settings",
-    icon: Settings,
-  },
 ];
 
 const Sidebar: React.FC = () => {
   const location = useLocation();
 
   return (
-    <div className="hidden md:flex h-screen w-64 flex-col border-r border-border/40 bg-sidebar">
-      <div className="flex flex-col flex-grow p-4 space-y-4">
+    <div className="hidden md:flex h-screen w-52 flex-col border-r border-border/40 bg-sidebar">
+      <div className="flex flex-col flex-grow p-3 space-y-4">
         <div className="py-2">
           <h2 className="text-xs font-semibold text-muted-foreground px-2">
             NAVIGATION
@@ -90,19 +66,6 @@ const Sidebar: React.FC = () => {
             </Link>
           ))}
         </nav>
-      </div>
-      <div className="p-4 border-t border-border/40">
-        <div className="rounded-md bg-card p-3">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">Portfolio Value</p>
-              <p className="font-medium">$23,456.78</p>
-            </div>
-            <div className="rounded-full bg-profit/10 text-profit px-2 py-1 text-xs font-medium">
-              +5.23%
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

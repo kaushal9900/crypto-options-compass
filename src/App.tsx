@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./components/layout/Layout";
-import Index from "./pages/Index";
+import Dashboard from "./pages/Dashboard";
 import OptionsChain from "./pages/OptionsChain";
 import StrategyBuilder from "./pages/StrategyBuilder";
 import NotFound from "./pages/NotFound";
@@ -19,9 +19,10 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Layout><Index /></Layout>} />
+          <Route path="/" element={<Layout><Dashboard /></Layout>} />
           <Route path="/options" element={<Layout><OptionsChain /></Layout>} />
           <Route path="/strategy" element={<Layout><StrategyBuilder /></Layout>} />
+          <Route path="/charts" element={<Layout><Dashboard /></Layout>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -2,15 +2,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
-import { Search, Bell, ChevronDown, User } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 const Navbar: React.FC = () => {
@@ -24,6 +17,22 @@ const Navbar: React.FC = () => {
           <span>CryptoOptions</span>
         </div>
 
+        <div className="flex items-center ml-10 space-x-1">
+          <Tabs defaultValue="options" className="w-full">
+            <TabsList className="bg-transparent">
+              <TabsTrigger value="options" asChild>
+                <Link to="/options" className="text-sm font-medium">Options Chain</Link>
+              </TabsTrigger>
+              <TabsTrigger value="strategy" asChild>
+                <Link to="/strategy" className="text-sm font-medium">Strategy Builder</Link>
+              </TabsTrigger>
+              <TabsTrigger value="charts" asChild>
+                <Link to="/charts" className="text-sm font-medium">Charts</Link>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+
         <div className="ml-auto flex items-center space-x-4">
           <div className="relative w-64">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -33,37 +42,6 @@ const Navbar: React.FC = () => {
               className="w-full bg-background pl-8 focus-visible:ring-primary"
             />
           </div>
-          
-          <Button variant="ghost" size="icon">
-            <Bell className="h-5 w-5" />
-          </Button>
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                <span>Account</span>
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                Settings
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                API Keys
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
     </div>
