@@ -1,25 +1,27 @@
 
 import React, { useState, useEffect } from "react";
-import { CircleDollarSign, TrendingUp, Activity, BarChart3 } from "lucide-react";
+import { CircleDollarSign, Activity } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import PriceChart from "@/components/dashboard/PriceChart";
 import TopOptions from "@/components/dashboard/TopOptions";
-import OptionsCalculator from "@/components/dashboard/OptionsCalculator";
 import { getOptionChain } from "@/services/optionsService";
 import { useToast } from "@/components/ui/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Dashboard: React.FC = () => {
-  const [btcData, setBtcData] = useState<any>(null);
+  const [assetData, setAssetData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [selectedAsset, setSelectedAsset] = useState<string>("BTC");
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchBTCData = async () => {
+    const fetchAssetData = async () => {
       try {
-        const data = await getOptionChain('BTC');
-        setBtcData(data);
+        setIsLoading(true);
+        const data = await getOptionChain(selectedAsset);
+        setAssetData(data);
       } catch (error) {
-        console.error("Failed to fetch BTC data:", error);
+        console.error(`Failed to fetch ${selectedAsset} data:`, error);
         toast({
           title: "Error",
           description: "Failed to load market data",
@@ -30,29 +32,25 @@ const Dashboard: React.FC = () => {
       }
     };
 
-    fetchBTCData();
-  }, [toast]);
+    fetchAssetData();
+  }, [toast, selectedAsset]);
 
   // Calculate some statistics from the options data
   const calculateStats = () => {
-    if (!btcData) return {
+    if (!assetData) return {
       price: "$0",
       change: 0,
       volume: "$0M",
       volumeChange: 0,
-      activeOptions: 0,
-      activeChange: 0,
-      roi: "0%",
-      roiChange: 0
     };
     
     // Get all available option contracts from all expiry dates
     const allOptions = [];
     
-    if (btcData.options_by_expiry) {
+    if (assetData.options_by_expiry) {
       // Extract options from all expiry dates
-      Object.keys(btcData.options_by_expiry).forEach(expiry => {
-        const expiryData = btcData.options_by_expiry[expiry];
+      Object.keys(assetData.options_by_expiry).forEach(expiry => {
+        const expiryData = assetData.options_by_expiry[expiry];
         if (expiryData.call && Array.isArray(expiryData.call)) {
           allOptions.push(...expiryData.call);
         }
@@ -60,9 +58,9 @@ const Dashboard: React.FC = () => {
           allOptions.push(...expiryData.put);
         }
       });
-    } else if (btcData.calls && btcData.puts) {
+    } else if (assetData.calls && assetData.puts) {
       // Fallback to old structure
-      allOptions.push(...btcData.calls, ...btcData.puts);
+      allOptions.push(...assetData.calls, ...assetData.puts);
     }
     
     // Calculate total volume
@@ -70,21 +68,12 @@ const Dashboard: React.FC = () => {
       (sum, option) => sum + (option.volume * option.mark_price), 
       0
     );
-    
-    // Count options with volume > 0
-    const activeOptionsCount = allOptions.filter(
-      option => option.volume > 0
-    ).length;
 
     return {
-      price: `$${btcData.underlying_price.toLocaleString()}`,
+      price: `$${assetData.underlying_price.toLocaleString()}`,
       change: 2.4, // Mock change data
       volume: `$${(totalVolume / 1000000).toFixed(1)}M`,
       volumeChange: 5.2, // Mock change data
-      activeOptions: activeOptionsCount,
-      activeChange: -3.8, // Mock change data
-      roi: "18.2%", // Mock ROI data
-      roiChange: 12.5 // Mock ROI change data
     };
   };
 
@@ -94,11 +83,23 @@ const Dashboard: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-medium">Market Overview</h1>
+        <Select
+          value={selectedAsset}
+          onValueChange={setSelectedAsset}
+        >
+          <SelectTrigger className="w-[100px]">
+            <SelectValue placeholder="Select asset" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="BTC">BTC</SelectItem>
+            <SelectItem value="ETH">ETH</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <StatCard
-          title="BTC Price"
+          title={`${selectedAsset} Price`}
           value={stats.price}
           change={stats.change}
           icon={<CircleDollarSign className="h-5 w-5 text-primary" />}
@@ -111,32 +112,17 @@ const Dashboard: React.FC = () => {
           icon={<Activity className="h-5 w-5 text-primary" />}
           isLoading={isLoading}
         />
-        <StatCard
-          title="Active Options"
-          value={stats.activeOptions.toString()}
-          change={stats.activeChange}
-          icon={<BarChart3 className="h-5 w-5 text-primary" />}
-          isLoading={isLoading}
-        />
-        <StatCard
-          title="30-Day ROI"
-          value={stats.roi}
-          change={stats.roiChange}
-          icon={<TrendingUp className="h-5 w-5 text-primary" />}
-          isLoading={isLoading}
-        />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         <PriceChart 
-          className="lg:col-span-2" 
-          btcPrice={btcData?.underlying_price} 
+          symbol={`${selectedAsset}/USD`}
+          btcPrice={assetData?.underlying_price} 
           isLoading={isLoading} 
         />
-        <OptionsCalculator initialPrice={btcData?.underlying_price} />
       </div>
 
-      <TopOptions optionsData={btcData} isLoading={isLoading} />
+      <TopOptions optionsData={assetData} isLoading={isLoading} />
     </div>
   );
 };

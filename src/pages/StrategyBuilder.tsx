@@ -1,21 +1,21 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getAvailableAssets, OptionContract } from "@/services/optionsService";
+import { getAvailableAssets } from "@/services/optionsService";
 import { getStrategyDefinitions, constructStrategy, calculatePayoff, StrategyDefinition, Strategy, StrategyPayoff } from "@/services/strategyService";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronUp, Search, Filter, Plus, Minus, Save, PlusCircle, Layers } from "lucide-react";
+import { Search, Filter, Plus, Minus, PlusCircle, Layers } from "lucide-react";
 import PayoffGraph from "@/components/strategy/PayoffGraph";
 import PayoffTable from "@/components/strategy/PayoffTable";
-import CustomStrategyBuilder, { CustomStrategyOption } from "@/components/strategy/CustomStrategyBuilder";
+import CustomStrategyBuilder from "@/components/strategy/CustomStrategyBuilder";
 import StrategyComparison from "@/components/strategy/StrategyComparison";
-import RiskAnalysisDashboard from "@/components/strategy/RiskAnalysisDashboard";
+import { StrategyContext } from "@/App";
 
 const StrategyBuilder: React.FC = () => {
   const [assets, setAssets] = useState<string[]>([]);
@@ -29,8 +29,8 @@ const StrategyBuilder: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>("graph");
   const [strategyType, setStrategyType] = useState<string>("all");
   const [isCustomStrategy, setIsCustomStrategy] = useState<boolean>(false);
-  const [mainView, setMainView] = useState<"builder" | "comparison" | "risk">("builder");
-  const [comparisonStrategies, setComparisonStrategies] = useState<Array<{strategy: Strategy, payoff: StrategyPayoff}>>([]);
+  const [mainView, setMainView] = useState<"builder" | "comparison">("builder");
+  const { comparisonStrategies, setComparisonStrategies } = useContext(StrategyContext);
   const { toast } = useToast();
 
   // Fetch assets and strategy definitions on component mount
@@ -112,14 +112,6 @@ const StrategyBuilder: React.FC = () => {
       setIsLoading(false);
     }
   };
-
-  const handleBuildCustomStrategy = async (selectedOptions: CustomStrategyOption[]) => {
-    // This function will now be called for logging purposes only
-    toast({
-      title: "Custom Strategy",
-      description: `Processing ${selectedOptions.length} options for custom strategy`
-    });
-  };
   
   const handleCustomStrategyBuilt = (constructedStrategy: Strategy, payoffData: StrategyPayoff) => {
     // Update state with the custom strategy and payoff data
@@ -138,11 +130,12 @@ const StrategyBuilder: React.FC = () => {
 
   const handleAddToComparison = () => {
     if (strategy && payoff) {
-      const exists = comparisonStrategies.some(
-        item => item.strategy.definition_name === strategy.definition_name
+      // Check if this strategy already exists in comparison
+      const strategyExists = comparisonStrategies.some(
+        item => JSON.stringify(item.strategy) === JSON.stringify(strategy)
       );
       
-      if (!exists) {
+      if (!strategyExists) {
         setComparisonStrategies(prev => [...prev, { strategy, payoff }]);
         toast({
           title: "Added to Comparison",
@@ -189,15 +182,6 @@ const StrategyBuilder: React.FC = () => {
             >
               <PlusCircle className="h-4 w-4 mr-1" />
               Compare ({comparisonStrategies.length})
-            </Button>
-            <Button 
-              variant={mainView === "risk" ? "default" : "outline"}
-              size="sm" 
-              onClick={() => setMainView("risk")}
-              className="flex items-center"
-            >
-              <Save className="h-4 w-4 mr-1" />
-              Risk
             </Button>
           </div>
           <Select
@@ -364,7 +348,6 @@ const StrategyBuilder: React.FC = () => {
                 assets={assets}
                 selectedAsset={selectedAsset}
                 onAssetChange={setSelectedAsset}
-                onBuildCustomStrategy={handleBuildCustomStrategy}
                 onCustomStrategyBuilt={handleCustomStrategyBuilt}
               />
             ) : (
@@ -436,18 +419,14 @@ const StrategyBuilder: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <PayoffGraph 
-                  strategy={strategy}
-                  payoff={payoff}
+                  strategy={null}
+                  payoff={null}
                   comparisonPayoffs={comparisonStrategies}
                 />
               </CardContent>
             </Card>
           )}
         </div>
-      )}
-
-      {mainView === "risk" && (
-        <RiskAnalysisDashboard strategy={strategy} payoff={payoff} />
       )}
     </div>
   );
