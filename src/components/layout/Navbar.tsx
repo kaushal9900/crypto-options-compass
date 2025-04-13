@@ -12,9 +12,9 @@ const Navbar: React.FC = () => {
       <div className="flex h-16 items-center px-4">
         <div className="flex items-center gap-2 font-bold text-xl text-primary">
           <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-            <span className="text-white">C</span>
+            <span className="text-white">O</span>
           </div>
-          <span>CryptoOptions</span>
+          <span>The Options Tab</span>
         </div>
 
         <div className="flex items-center ml-10 space-x-1">
