@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,12 +9,14 @@ import { Label } from "@/components/ui/label";
 import { getOptionChain, OptionContract } from "@/services/optionsService";
 import { Plus, X, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { constructCustomStrategy, calculatePayoff } from "@/services/strategyService";
 
 interface CustomStrategyBuilderProps {
   assets: string[];
   selectedAsset: string;
   onAssetChange: (asset: string) => void;
   onBuildCustomStrategy: (selectedOptions: CustomStrategyOption[]) => void;
+  onCustomStrategyBuilt: (strategy: any, payoff: any) => void;
 }
 
 export interface CustomStrategyOption {
@@ -28,7 +29,8 @@ const CustomStrategyBuilder: React.FC<CustomStrategyBuilderProps> = ({
   assets,
   selectedAsset,
   onAssetChange,
-  onBuildCustomStrategy
+  onBuildCustomStrategy,
+  onCustomStrategyBuilt
 }) => {
   const [optionChain, setOptionChain] = useState<{
     calls: OptionContract[];
@@ -148,7 +150,7 @@ const CustomStrategyBuilder: React.FC<CustomStrategyBuilderProps> = ({
     setSelectedOptions(newOptions);
   };
 
-  const handleBuildStrategy = () => {
+  const handleBuildStrategy = async () => {
     if (selectedOptions.length === 0) {
       toast({
         title: "Error",
@@ -157,7 +159,51 @@ const CustomStrategyBuilder: React.FC<CustomStrategyBuilderProps> = ({
       });
       return;
     }
-    onBuildCustomStrategy(selectedOptions);
+    
+    setIsLoading(true);
+    
+    try {
+      // Prepare the request for the custom strategy API
+      const customStrategyRequest = {
+        underlying_asset: selectedAsset,
+        legs: selectedOptions.map(option => ({
+          option_symbol: option.option.symbol,
+          side: option.side,
+          quantity: option.quantity
+        }))
+      };
+      
+      // Call the backend API
+      const constructedStrategy = await constructCustomStrategy(customStrategyRequest);
+      
+      // Calculate payoff for the constructed strategy
+      const underlyingPrice = constructedStrategy.underlying_price_at_construction;
+      const priceRange = underlyingPrice * 0.15; // 15% price range
+      
+      const payoffData = await calculatePayoff(
+        constructedStrategy,
+        underlyingPrice - priceRange,
+        underlyingPrice + priceRange,
+        100
+      );
+      
+      // Notify the parent component
+      onCustomStrategyBuilt(constructedStrategy, payoffData);
+      
+      toast({
+        title: "Strategy Built",
+        description: "Custom strategy was built successfully"
+      });
+    } catch (error: any) {
+      console.error("Failed to build custom strategy:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to build custom strategy",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -265,9 +311,16 @@ const CustomStrategyBuilder: React.FC<CustomStrategyBuilderProps> = ({
           <div className="mt-4 flex justify-end">
             <Button 
               onClick={handleBuildStrategy}
-              disabled={selectedOptions.length === 0}
+              disabled={selectedOptions.length === 0 || isLoading}
             >
-              Build Custom Strategy
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                  Building...
+                </>
+              ) : (
+                "Build Custom Strategy"
+              )}
             </Button>
           </div>
         </CardContent>

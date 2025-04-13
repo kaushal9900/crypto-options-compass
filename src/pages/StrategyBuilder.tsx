@@ -114,15 +114,26 @@ const StrategyBuilder: React.FC = () => {
   };
 
   const handleBuildCustomStrategy = async (selectedOptions: CustomStrategyOption[]) => {
-    // In a real implementation, this would send the custom options to the backend
-    // For now, we'll just show a toast
+    // This function will now be called for logging purposes only
     toast({
       title: "Custom Strategy",
-      description: `Building custom strategy with ${selectedOptions.length} options`
+      description: `Processing ${selectedOptions.length} options for custom strategy`
     });
+  };
+  
+  const handleCustomStrategyBuilt = (constructedStrategy: Strategy, payoffData: StrategyPayoff) => {
+    // Update state with the custom strategy and payoff data
+    setStrategy(constructedStrategy);
+    setPayoff(payoffData);
     
-    // Here you would make an API call to your backend with the selectedOptions
-    // And then process the response similar to handleConstructStrategy
+    // Switch to builder view if not already there
+    setMainView("builder");
+    
+    // Switch to graph tab to show the payoff
+    setActiveTab("graph");
+    
+    // Disable custom strategy mode since we now have results
+    setIsCustomStrategy(false);
   };
 
   const handleAddToComparison = () => {
@@ -205,13 +216,15 @@ const StrategyBuilder: React.FC = () => {
             </SelectContent>
           </Select>
           
-          <Button 
-            size="sm" 
-            onClick={handleConstructStrategy}
-            disabled={isLoading || !selectedAsset || (!selectedStrategy && !isCustomStrategy)}
-          >
-            {isLoading ? "Building..." : "Build Strategy"}
-          </Button>
+          {!isCustomStrategy && (
+            <Button 
+              size="sm" 
+              onClick={handleConstructStrategy}
+              disabled={isLoading || !selectedAsset || !selectedStrategy}
+            >
+              {isLoading ? "Building..." : "Build Strategy"}
+            </Button>
+          )}
         </div>
       </div>
       
@@ -352,6 +365,7 @@ const StrategyBuilder: React.FC = () => {
                 selectedAsset={selectedAsset}
                 onAssetChange={setSelectedAsset}
                 onBuildCustomStrategy={handleBuildCustomStrategy}
+                onCustomStrategyBuilt={handleCustomStrategyBuilt}
               />
             ) : (
               <>
