@@ -15,7 +15,7 @@ interface CustomStrategyBuilderProps {
   assets: string[];
   selectedAsset: string;
   onAssetChange: (asset: string) => void;
-  onBuildCustomStrategy: (selectedOptions: CustomStrategyOption[]) => void;
+  onBuildCustomStrategy?: (selectedOptions: CustomStrategyOption[]) => void;
   onCustomStrategyBuilt: (strategy: any, payoff: any) => void;
 }
 
@@ -43,7 +43,6 @@ const CustomStrategyBuilder: React.FC<CustomStrategyBuilderProps> = ({
   const [selectedExpiry, setSelectedExpiry] = useState<string>("");
   const { toast } = useToast();
 
-  // Fetch option chain when asset changes
   useEffect(() => {
     if (!selectedAsset) return;
     
@@ -52,7 +51,6 @@ const CustomStrategyBuilder: React.FC<CustomStrategyBuilderProps> = ({
       try {
         const data = await getOptionChain(selectedAsset);
         
-        // Extract and format expiry dates
         if (data.options_by_expiry) {
           const formattedDates = Object.keys(data.options_by_expiry).map(date => {
             const formattedDate = formatDate(date);
@@ -67,7 +65,6 @@ const CustomStrategyBuilder: React.FC<CustomStrategyBuilderProps> = ({
           if (formattedDates.length > 0) {
             setSelectedExpiry(formattedDates[0].value);
             
-            // Set option chain for the first expiry date
             if (data.options_by_expiry[formattedDates[0].value]) {
               setOptionChain({
                 calls: data.options_by_expiry[formattedDates[0].value].call || [],
@@ -96,7 +93,6 @@ const CustomStrategyBuilder: React.FC<CustomStrategyBuilderProps> = ({
     fetchOptionChain();
   }, [selectedAsset, toast]);
   
-  // Update option chain when expiry date changes
   useEffect(() => {
     if (!selectedExpiry || !selectedAsset) return;
     
@@ -163,7 +159,6 @@ const CustomStrategyBuilder: React.FC<CustomStrategyBuilderProps> = ({
     setIsLoading(true);
     
     try {
-      // Prepare the request for the custom strategy API
       const customStrategyRequest = {
         underlying_asset: selectedAsset,
         legs: selectedOptions.map(option => ({
@@ -173,12 +168,10 @@ const CustomStrategyBuilder: React.FC<CustomStrategyBuilderProps> = ({
         }))
       };
       
-      // Call the backend API
       const constructedStrategy = await constructCustomStrategy(customStrategyRequest);
       
-      // Calculate payoff for the constructed strategy
       const underlyingPrice = constructedStrategy.underlying_price_at_construction;
-      const priceRange = underlyingPrice * 0.15; // 15% price range
+      const priceRange = underlyingPrice * 0.15;
       
       const payoffData = await calculatePayoff(
         constructedStrategy,
@@ -187,7 +180,6 @@ const CustomStrategyBuilder: React.FC<CustomStrategyBuilderProps> = ({
         100
       );
       
-      // Notify the parent component
       onCustomStrategyBuilt(constructedStrategy, payoffData);
       
       toast({

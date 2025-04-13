@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useContext } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,7 +32,6 @@ const StrategyBuilder: React.FC = () => {
   const { comparisonStrategies, setComparisonStrategies } = useContext(StrategyContext);
   const { toast } = useToast();
 
-  // Fetch assets and strategy definitions on component mount
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -84,7 +82,6 @@ const StrategyBuilder: React.FC = () => {
       
       setStrategy(constructedStrategy);
       
-      // Calculate payoff for the constructed strategy
       const underlyingPrice = constructedStrategy.underlying_price_at_construction;
       const priceRange = underlyingPrice * 0.15; // 15% price range
       
@@ -114,23 +111,16 @@ const StrategyBuilder: React.FC = () => {
   };
   
   const handleCustomStrategyBuilt = (constructedStrategy: Strategy, payoffData: StrategyPayoff) => {
-    // Update state with the custom strategy and payoff data
     setStrategy(constructedStrategy);
     setPayoff(payoffData);
     
-    // Switch to builder view if not already there
     setMainView("builder");
-    
-    // Switch to graph tab to show the payoff
     setActiveTab("graph");
-    
-    // Disable custom strategy mode since we now have results
     setIsCustomStrategy(false);
   };
 
   const handleAddToComparison = () => {
     if (strategy && payoff) {
-      // Check if this strategy already exists in comparison
       const strategyExists = comparisonStrategies.some(
         item => JSON.stringify(item.strategy) === JSON.stringify(strategy)
       );
@@ -263,7 +253,6 @@ const StrategyBuilder: React.FC = () => {
                   />
                 </div>
                 
-                {/* Add the Custom Strategy option at the top */}
                 <div 
                   className={cn(
                     "rounded-md p-2 cursor-pointer border bg-secondary",
@@ -280,7 +269,6 @@ const StrategyBuilder: React.FC = () => {
                   </div>
                 </div>
                 
-                {/* Strategy list */}
                 <div className="space-y-2 max-h-[400px] overflow-y-auto">
                   {filteredStrategies.map((strategy) => (
                     <div 
@@ -388,7 +376,6 @@ const StrategyBuilder: React.FC = () => {
                 </CardHeader>
                 
                 <CardContent className="pt-6">
-                  {/* Render content based on activeTab state */}
                   {activeTab === "graph" && (
                     <PayoffGraph 
                       strategy={strategy} 
