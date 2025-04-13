@@ -88,3 +88,4 @@ const StrategyComparison: React.FC<StrategyComparisonProps> = ({ strategies, onR
 };
 
 export default StrategyComparison;
+

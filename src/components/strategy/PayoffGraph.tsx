@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Strategy, StrategyPayoff } from "@/services/strategyService";
 import { 
@@ -56,8 +55,10 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label })
 const PayoffGraph: React.FC<PayoffGraphProps> = ({ strategy, payoff, comparisonPayoffs = [] }) => {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [chartType, setChartType] = useState<"area" | "line" | "bar">("area");
+  
+  const hasData = payoff !== null || (comparisonPayoffs && comparisonPayoffs.length > 0);
 
-  if (!payoff) {
+  if (!hasData) {
     return (
       <div className="h-80 flex items-center justify-center">
         <p className="text-muted-foreground">Build a strategy to see the payoff chart</p>
@@ -65,14 +66,15 @@ const PayoffGraph: React.FC<PayoffGraphProps> = ({ strategy, payoff, comparisonP
     );
   }
 
-  // Add asset symbol to the payoff data for tooltip display
-  const enhancedPayoffData = payoff.payoff.map(point => ({
+  const basePayoff = payoff || (comparisonPayoffs.length > 0 ? comparisonPayoffs[0].payoff : null);
+  if (!basePayoff) return null;
+  
+  const enhancedPayoffData = basePayoff.payoff.map(point => ({
     ...point,
-    underlying_asset: strategy?.underlying_asset,
-    [strategy?.definition_name || 'Current']: point.profit_loss
+    underlying_asset: strategy?.underlying_asset || (comparisonPayoffs[0]?.strategy.underlying_asset || ''),
+    ...(strategy && { [strategy.definition_name || 'Current']: point.profit_loss })
   }));
 
-  // Add comparison data if available
   if (comparisonPayoffs && comparisonPayoffs.length > 0) {
     enhancedPayoffData.forEach((point, index) => {
       comparisonPayoffs.forEach(item => {
@@ -83,7 +85,6 @@ const PayoffGraph: React.FC<PayoffGraphProps> = ({ strategy, payoff, comparisonP
     });
   }
 
-  // Adjust payoff data based on zoom level
   const zoomedData = () => {
     if (zoomLevel === 1) return enhancedPayoffData;
     
@@ -104,7 +105,6 @@ const PayoffGraph: React.FC<PayoffGraphProps> = ({ strategy, payoff, comparisonP
     if (zoomLevel > 1) setZoomLevel(prev => prev - 0.5);
   };
 
-  // Generate colors for each strategy line
   const getStrategyColor = (index: number) => {
     const colors = ['#8B5CF6', '#EC4899', '#F97316', '#10B981', '#3B82F6', '#F59E0B'];
     return colors[index % colors.length];
@@ -113,7 +113,6 @@ const PayoffGraph: React.FC<PayoffGraphProps> = ({ strategy, payoff, comparisonP
   const renderChartContent = () => {
     const data = zoomedData();
 
-    // Common chart props
     const chartProps = {
       data,
       margin: { top: 10, right: 30, left: 0, bottom: 0 }
@@ -126,7 +125,7 @@ const PayoffGraph: React.FC<PayoffGraphProps> = ({ strategy, payoff, comparisonP
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2D3748" />
             <XAxis 
               dataKey="underlying_price" 
-              tickFormatter={(value) => `${strategy?.underlying_asset || ''} $${value.toLocaleString()}`}
+              tickFormatter={(value) => `${data[0]?.underlying_asset || ''} $${value.toLocaleString()}`}
               tickLine={false}
               axisLine={false}
               tick={{ fill: '#8E9196', fontSize: 12 }}
@@ -152,13 +151,15 @@ const PayoffGraph: React.FC<PayoffGraphProps> = ({ strategy, payoff, comparisonP
                 }}
               />
             )}
-            <Line 
-              type="monotone" 
-              dataKey={strategy?.definition_name || 'Current'} 
-              stroke="#8B5CF6" 
-              strokeWidth={2}
-              dot={false}
-            />
+            {strategy && (
+              <Line 
+                type="monotone" 
+                dataKey={strategy.definition_name || 'Current'} 
+                stroke="#8B5CF6" 
+                strokeWidth={2}
+                dot={false}
+              />
+            )}
             {comparisonPayoffs.map((item, index) => (
               <Line 
                 key={index}
@@ -178,7 +179,7 @@ const PayoffGraph: React.FC<PayoffGraphProps> = ({ strategy, payoff, comparisonP
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2D3748" />
             <XAxis 
               dataKey="underlying_price" 
-              tickFormatter={(value) => `${strategy?.underlying_asset || ''} $${value.toLocaleString()}`}
+              tickFormatter={(value) => `${data[0]?.underlying_asset || ''} $${value.toLocaleString()}`}
               tickLine={false}
               axisLine={false}
               tick={{ fill: '#8E9196', fontSize: 12 }}
@@ -191,7 +192,9 @@ const PayoffGraph: React.FC<PayoffGraphProps> = ({ strategy, payoff, comparisonP
             />
             <Tooltip content={<CustomTooltip />} />
             <ReferenceLine y={0} stroke="#8E9196" strokeWidth={1} />
-            <Bar dataKey={strategy?.definition_name || 'Current'} fill="#8B5CF6" />
+            {strategy && (
+              <Bar dataKey={strategy.definition_name || 'Current'} fill="#8B5CF6" />
+            )}
             {comparisonPayoffs.map((item, index) => (
               <Bar 
                 key={index}
@@ -218,7 +221,7 @@ const PayoffGraph: React.FC<PayoffGraphProps> = ({ strategy, payoff, comparisonP
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2D3748" />
             <XAxis 
               dataKey="underlying_price" 
-              tickFormatter={(value) => `${strategy?.underlying_asset || ''} $${value.toLocaleString()}`}
+              tickFormatter={(value) => `${data[0]?.underlying_asset || ''} $${value.toLocaleString()}`}
               tickLine={false}
               axisLine={false}
               tick={{ fill: '#8E9196', fontSize: 12 }}
@@ -244,15 +247,17 @@ const PayoffGraph: React.FC<PayoffGraphProps> = ({ strategy, payoff, comparisonP
                 }}
               />
             )}
-            <Area 
-              type="monotone" 
-              dataKey={strategy?.definition_name || 'Current'} 
-              stroke="#8B5CF6" 
-              strokeWidth={2}
-              fill="url(#colorProfit)"
-              activeDot={{ r: 6 }}
-              fillOpacity={1}
-            />
+            {strategy && (
+              <Area 
+                type="monotone" 
+                dataKey={strategy.definition_name || 'Current'} 
+                stroke="#8B5CF6" 
+                strokeWidth={2}
+                fill="url(#colorProfit)"
+                activeDot={{ r: 6 }}
+                fillOpacity={1}
+              />
+            )}
             {comparisonPayoffs.map((item, index) => (
               <Area 
                 key={index}
@@ -269,15 +274,17 @@ const PayoffGraph: React.FC<PayoffGraphProps> = ({ strategy, payoff, comparisonP
     }
   };
 
+  const displayStrategy = strategy || (comparisonPayoffs.length > 0 ? comparisonPayoffs[0].strategy : null);
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-2">
-          {strategy && (
+          {displayStrategy && (
             <div>
-              <span className="text-sm font-medium">{strategy.definition_name}</span>
+              <span className="text-sm font-medium">{displayStrategy.definition_name}</span>
               <span className="text-xs text-muted-foreground ml-2">
-                ({strategy.underlying_asset} @ ${strategy.underlying_price_at_construction.toLocaleString()})
+                ({displayStrategy.underlying_asset} @ ${displayStrategy.underlying_price_at_construction.toLocaleString()})
               </span>
             </div>
           )}
